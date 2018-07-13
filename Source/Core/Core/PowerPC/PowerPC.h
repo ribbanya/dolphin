@@ -231,6 +231,10 @@ struct TryReadInstResult
 };
 TryReadInstResult TryReadInstruction(const u32 address);
 
+//Dragonbane
+std::string Read_String(const u32 startAddress, int count);
+void Write_String(const std::string text, const u32 startAddress);
+
 u8  Read_U8(const u32 address);
 u16 Read_U16(const u32 address);
 u32 Read_U32(const u32 address);
