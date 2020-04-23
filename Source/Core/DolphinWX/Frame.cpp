@@ -245,6 +245,7 @@ EVT_MENU(IDM_PLAY_RECORD, CFrame::OnPlayRecording)
 EVT_MENU(IDM_RECORD_EXPORT, CFrame::OnRecordExport)
 EVT_MENU(IDM_RECORD_READ_ONLY, CFrame::OnRecordReadOnly)
 EVT_MENU(IDM_TAS_INPUT, CFrame::OnTASInput)
+EVT_MENU(IDM_TASTUDIO, CFrame::OnTAStudio) // TAStudio - Added by THC98
 EVT_MENU(IDM_TOGGLE_PAUSE_MOVIE, CFrame::OnTogglePauseMovie)
 EVT_MENU(IDM_SHOW_LAG, CFrame::OnShowLag)
 EVT_MENU(IDM_SHOW_FRAME_COUNT, CFrame::OnShowFrameCount)
@@ -279,7 +280,6 @@ EVT_MENU_RANGE(IDM_FLOAT_LOG_WINDOW, IDM_FLOAT_CODE_WINDOW, CFrame::OnFloatWindo
 EVT_MENU(IDM_NETPLAY, CFrame::OnNetPlay)
 EVT_MENU(IDM_MEMCARD, CFrame::OnMemcard)
 EVT_MENU(IDM_SCRIPTLAUNCH, CFrame::OnScriptLaunch) // ADDED
-EVT_MENU(IDM_LUA_SCRIPT, CFrame::OnLua) // ADDED
 EVT_MENU(IDM_IMPORT_SAVE, CFrame::OnImportSave)
 EVT_MENU(IDM_EXPORT_ALL_SAVE, CFrame::OnExportAllSaves)
 EVT_MENU(IDM_CHEATS, CFrame::OnShowCheatsWindow)
@@ -448,18 +448,15 @@ CFrame::CFrame(wxFrame* parent,
 
 	g_ScriptLauncher = new LuaWindow(this); // ADDED
 
+	g_TAStudioFrame = new TAStudioFrame(this); // TAStudio - Added by THC98
+
 	for (int i = 0; i < 8; ++i)
 		g_TASInputDlg[i] = new TASInputDlg(this);
 
-		  Movie::SetGCInputManip([this](GCPadStatus* pad, int controller_id)
-		  {			  
-			  main_frame->g_TASInputDlg[controller_id]->GetValues(pad);      
-		  }, Movie::GCManipIndex::TASInputGCManip);
-	    
-		  Movie::SetWiiInputManip([this](u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
-		  {    
-			  main_frame->g_TASInputDlg[controllerID + 4]->GetValues(data, rptf, ext, key);  
-		  }, Movie::WiiManipIndex::TASInputWiiManip);
+	Movie::SetTAStudioManip(TAStudioManip); // TAStudio - Added by THC98
+	Movie::SetTAStudioReceiver(TAStudioReceiver); // TAStudio - Added by THC98
+	Movie::SetGCInputManip(GCTASManipFunction);
+	Movie::SetWiiInputManip(WiiTASManipFunction);
 
 	State::SetOnAfterLoadCallback(OnAfterLoadCallback);
 	Core::SetOnStoppedCallback(OnStoppedCallback);
@@ -1055,6 +1052,32 @@ void OnStoppedCallback()
 	{
 		wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_STOPPED);
 		main_frame->GetEventHandler()->AddPendingEvent(event);
+	}
+}
+
+void TAStudioManip(GCPadStatus* PadStatus) // TAStudio - Added by THC98
+{
+	if (main_frame)
+		main_frame->g_TAStudioFrame->SetInput(PadStatus);
+}
+
+void TAStudioReceiver(GCPadStatus* PadStatus) // TAStudio - Added by THC98
+{
+	if (main_frame)
+		main_frame->g_TAStudioFrame->GetInput(PadStatus);
+}
+
+void GCTASManipFunction(GCPadStatus* PadStatus, int controllerID)
+{
+	if (main_frame)
+		main_frame->g_TASInputDlg[controllerID]->GetValues(PadStatus);
+}
+
+void WiiTASManipFunction(u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
+{
+	if (main_frame)
+	{
+		main_frame->g_TASInputDlg[controllerID + 4]->GetValues(data, rptf, ext, key);
 	}
 }
 
