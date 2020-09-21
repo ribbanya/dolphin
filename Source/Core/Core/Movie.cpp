@@ -53,7 +53,6 @@ namespace Movie {
 	static PlayMode s_playMode = MODE_NONE;
 
 	static u32 s_framesToSkip = 0, s_frameSkipCounter = 0;
-
 	static u8 s_numPads = 0;
 	static ControllerState s_padState;
 	static DTMHeader tmpHeader;
@@ -96,8 +95,8 @@ namespace Movie {
 
 	static TAStudioManip tasmfunc = nullptr; // TAStudio - Added by THC98
 	static TAStudioReceiver tasrfunc = nullptr; // TAStudio - Added by THC98
-	static GCManipFunction gcmfunc = nullptr;
-	static WiiManipFunction wiimfunc = nullptr;
+	static GCManipFunction gcmfunc[gc_manip_index_size];
+	static WiiManipFunction wiimfunc[wii_manip_index_size];
 
 	// NOTE: Host / CPU Thread
 	static void EnsureTmpInputSize(size_t bound)
@@ -621,13 +620,18 @@ namespace Movie {
 	{
 		return s_recordingStartTime;
 	}
-	
+
+	u64 GetCurrentFrame()
+	{
+		return g_currentFrame;
+	}
+
 	std::string GetRerecordCount()
-        {
+	{
 	    std::string output = StringFromFormat("Rerecords: %d", s_rerecords);
 	    output.append("\n");
 	    return output;
-        }	
+	}
 
 	bool IsUsingPad(int controller)
 	{
@@ -1640,13 +1644,24 @@ namespace Movie {
 		tasrfunc = func;
 	}
 
-	void SetGCInputManip(GCManipFunction func)
+	void SetGCInputManip(GCManipFunction func, GCManipIndex manipfunctionsindex)
 	{
-		gcmfunc = func;
+		gcmfunc[static_cast<size_t>(manipfunctionsindex)] = std::move(func);
 	}
-	void SetWiiInputManip(WiiManipFunction func)
+	void SetWiiInputManip(WiiManipFunction func, WiiManipIndex manipfunctionsindex)
 	{
-		wiimfunc = func;
+		wiimfunc[static_cast<size_t>(manipfunctionsindex)] = std::move(func);
+	}
+
+	// NOTE: CPU Thread
+	void CallGCInputManip(GCPadStatus *PadStatus, int controllerID)
+	{
+		if (gcmfunc[static_cast<size_t>(GCManipIndex::TASInputGCManip)])
+			gcmfunc[static_cast<size_t>(GCManipIndex::TASInputGCManip)](PadStatus, controllerID);
+
+		// With this ordering, the Lua script will have priority over the TASInput window
+		if (gcmfunc[static_cast<size_t>(GCManipIndex::LuaGCManip)])
+			gcmfunc[static_cast<size_t>(GCManipIndex::LuaGCManip)](PadStatus, controllerID);
 	}
 
 	void CallTAStudioManip(GCPadStatus* PadStatus) // TAStudio - Added by THC98
@@ -1662,16 +1677,14 @@ namespace Movie {
 	}
 
 	// NOTE: CPU Thread
-	void CallGCInputManip(GCPadStatus* PadStatus, int controllerID)
-	{
-		if (gcmfunc)
-			(*gcmfunc)(PadStatus, controllerID);
-	}
-	// NOTE: CPU Thread
 	void CallWiiInputManip(u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
 	{
-		if (wiimfunc)
-			(*wiimfunc)(data, rptf, controllerID, ext, key);
+	    if (wiimfunc[static_cast<size_t>(WiiManipIndex::TASInputWiiManip)])
+		    wiimfunc[static_cast<size_t>(WiiManipIndex::TASInputWiiManip)](data, rptf, controllerID, ext, key);
+		// Now the Lua one
+	    if (wiimfunc[static_cast<size_t>(WiiManipIndex::LuaWiiManip)])
+		    wiimfunc[static_cast<size_t>(WiiManipIndex::LuaWiiManip)](data, rptf, controllerID, ext, key);
+
 	}
 
 	// NOTE: GPU Thread

@@ -43,6 +43,11 @@ class wxAuiNotebookEvent;
 class wxListEvent;
 class wxMenuItem;
 
+namespace Lua
+{
+class LuaScriptFrame;
+}
+
 class CRenderFrame : public wxFrame
 {
 	public:
@@ -93,6 +98,7 @@ public:
 	CCodeWindow* g_pCodeWindow;
 	NetPlaySetupFrame* g_NetPlaySetupDiag;
 	wxCheatsWindow* g_CheatsWindow;
+	Lua::LuaScriptFrame *m_lua_script_frame = nullptr;
 	TASInputDlg* g_TASInputDlg[8];
 
 	LuaWindow* g_ScriptLauncher; // ADDED
@@ -328,6 +334,7 @@ private:
 	void OnExportAllSaves(wxCommandEvent& event);
 
 	void OnScriptLaunch(wxCommandEvent& event); // ADDED
+	void OnLua(wxCommandEvent &event); // Added
 
 	void OnNetPlay(wxCommandEvent& event);
 

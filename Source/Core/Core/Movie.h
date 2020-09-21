@@ -30,6 +30,22 @@ enum PlayMode
 	MODE_PLAYING
 };
 
+enum class GCManipIndex
+{
+	TASInputGCManip,
+	LuaGCManip
+};
+
+enum class WiiManipIndex
+{
+	TASInputWiiManip,
+	LuaWiiManip
+};
+
+
+constexpr size_t gc_manip_index_size = 2;
+constexpr size_t wii_manip_index_size = 2;
+
 // GameCube Controller State
 #pragma pack(push,1)
 struct ControllerState
@@ -130,7 +146,8 @@ bool IsJustStartingPlayingInputFromSaveState();
 bool IsPlayingInput();
 bool IsMovieActive();
 bool IsReadOnly();
-u64  GetRecordingStartTime();
+u64 GetRecordingStartTime();
+u64 GetCurrentFrame();
 std::string GetRerecordCount();
 
 bool IsConfigSaved();
@@ -183,15 +200,16 @@ std::string GetInputDisplay();
 std::string GetRAMDisplay();
 
 // Done this way to avoid mixing of core and gui code
-typedef void(*GCManipFunction)(GCPadStatus*, int);
-typedef void(*WiiManipFunction)(u8*, WiimoteEmu::ReportFeatures, int, int, wiimote_key);
+using GCManipFunction = std::function<void(GCPadStatus *, int)>;
+using WiiManipFunction = std::function<void(u8 *, WiimoteEmu::ReportFeatures, int, int, wiimote_key)>;
 typedef void(*TAStudioManip)(GCPadStatus*); // TAStudio - Added by THC98
 typedef void(*TAStudioReceiver)(GCPadStatus*); // TAStudio - Added by THC98
 
-void SetGCInputManip(GCManipFunction);
-void SetWiiInputManip(WiiManipFunction);
+void SetGCInputManip(GCManipFunction func, GCManipIndex manipfunctionsindex);
+void SetWiiInputManip(WiiManipFunction func, WiiManipIndex manipfunctionsindex);
 void SetTAStudioManip(TAStudioManip); // TAStudio - Added by THC98
 void SetTAStudioReceiver(TAStudioReceiver); // TAStudio - Added by THC98
+
 void CallGCInputManip(GCPadStatus* PadStatus, int controllerID);
 void CallWiiInputManip(u8* core, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key);
 void CallTAStudioManip(GCPadStatus* PadStatus); // TAStudio - Added by THC98

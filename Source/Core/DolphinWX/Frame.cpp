@@ -251,7 +251,7 @@ EVT_MENU(IDM_SHOW_LAG, CFrame::OnShowLag)
 EVT_MENU(IDM_SHOW_FRAME_COUNT, CFrame::OnShowFrameCount)
 EVT_MENU(IDM_SHOW_INPUT_DISPLAY, CFrame::OnShowInputDisplay)
 EVT_MENU(IDM_SHOW_RAM_DISPLAY, CFrame::OnShowRAMDisplay)
-EVT_MENU(IDM_SHOW_RERECORDS, CFrame::OnShowRerecordCount)	
+EVT_MENU(IDM_SHOW_RERECORDS, CFrame::OnShowRerecordCount)
 EVT_MENU(IDM_FRAMESTEP, CFrame::OnFrameStep)
 EVT_MENU(IDM_SCREENSHOT, CFrame::OnScreenshot)
 EVT_MENU(IDM_TOGGLE_DUMP_FRAMES, CFrame::OnToggleDumpFrames)
@@ -280,6 +280,7 @@ EVT_MENU_RANGE(IDM_FLOAT_LOG_WINDOW, IDM_FLOAT_CODE_WINDOW, CFrame::OnFloatWindo
 EVT_MENU(IDM_NETPLAY, CFrame::OnNetPlay)
 EVT_MENU(IDM_MEMCARD, CFrame::OnMemcard)
 EVT_MENU(IDM_SCRIPTLAUNCH, CFrame::OnScriptLaunch) // ADDED
+EVT_MENU(IDM_LUA_SCRIPT, CFrame::OnLua) // ADDED
 EVT_MENU(IDM_IMPORT_SAVE, CFrame::OnImportSave)
 EVT_MENU(IDM_EXPORT_ALL_SAVE, CFrame::OnExportAllSaves)
 EVT_MENU(IDM_CHEATS, CFrame::OnShowCheatsWindow)
@@ -455,8 +456,16 @@ CFrame::CFrame(wxFrame* parent,
 
 	Movie::SetTAStudioManip(TAStudioManip); // TAStudio - Added by THC98
 	Movie::SetTAStudioReceiver(TAStudioReceiver); // TAStudio - Added by THC98
-	Movie::SetGCInputManip(GCTASManipFunction);
-	Movie::SetWiiInputManip(WiiTASManipFunction);
+
+	Movie::SetGCInputManip([this](GCPadStatus* pad, int controller_id)
+	{
+		main_frame->g_TASInputDlg[controller_id]->GetValues(pad);
+	}, Movie::GCManipIndex::TASInputGCManip);
+
+	Movie::SetWiiInputManip([this](u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
+	{
+		main_frame->g_TASInputDlg[controllerID + 4]->GetValues(data, rptf, ext, key);
+	}, Movie::WiiManipIndex::TASInputWiiManip);
 
 	State::SetOnAfterLoadCallback(OnAfterLoadCallback);
 	Core::SetOnStoppedCallback(OnStoppedCallback);
@@ -1068,20 +1077,6 @@ void TAStudioReceiver(GCPadStatus* PadStatus) // TAStudio - Added by THC98
 		main_frame->g_TAStudioFrame->GetInput(PadStatus);
 }
 
-void GCTASManipFunction(GCPadStatus* PadStatus, int controllerID)
-{
-	if (main_frame)
-		main_frame->g_TASInputDlg[controllerID]->GetValues(PadStatus);
-}
-
-void WiiTASManipFunction(u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
-{
-	if (main_frame)
-	{
-		main_frame->g_TASInputDlg[controllerID + 4]->GetValues(data, rptf, ext, key);
-	}
-}
-
 void CFrame::OnKeyDown(wxKeyEvent& event)
 {
 	// On OS X, we claim all keyboard events while
@@ -1639,4 +1634,3 @@ void CFrame::HandleFrameSkipHotkeys()
 		holdFrameStepDelayCount = 0;
 	}
 }
-
